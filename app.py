@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 
-# ================= PAGE CONFIG =================
+#  PAGE CONFIG 
 st.set_page_config(page_title="Shape & Contour Analyzer", layout="wide")
 st.title("🔍 Shape & Contour Analyzer")
 
@@ -12,14 +12,14 @@ st.markdown("""
 Geometric shape detection using **strict mathematical rules**.
 """)
 
-# ================= SIDEBAR =================
+#  SIDEBAR 
 st.sidebar.header("⚙️ Controls")
 min_area = st.sidebar.slider("Minimum Object Area", 100, 20000, 500)
 
-# ================= IMAGE UPLOAD =================
+#  IMAGE UPLOAD 
 uploaded_file = st.file_uploader("Upload an Image", type=["jpg", "jpeg", "png"])
 
-# ================= GEOMETRY HELPERS =================
+#  GEOMETRY HELPERS 
 def angle_between(v1, v2):
     cosang = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
     return np.degrees(np.arccos(np.clip(cosang, -1, 1)))
@@ -42,14 +42,14 @@ def side_lengths(pts):
 def opposite_angles_equal(angles, tol=6):
     return abs(angles[0] - angles[2]) < tol and abs(angles[1] - angles[3]) < tol
 
-# ================= SHAPE CLASSIFIER =================
+#  SHAPE CLASSIFIER 
 def classify_shape(contour):
     area = cv2.contourArea(contour)
     peri = cv2.arcLength(contour, True)
     if peri == 0:
         return "Unknown"
 
-    # ---- CIRCLE ----
+    #  CIRCLE 
     circularity = 4 * np.pi * area / (peri * peri)
     if circularity > 0.85:
         return "Circle"
@@ -57,11 +57,11 @@ def classify_shape(contour):
     approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
     v = len(approx)
 
-    # ---- TRIANGLE ----
+    #  TRIANGLE 
     if v == 3:
         return "Triangle"
 
-    # ---- QUADRILATERALS ----
+    #  QUADRILATERALS 
     if v == 4:
         pts = approx.reshape(4, 2)
 
@@ -79,7 +79,7 @@ def classify_shape(contour):
         if is_parallel(pts[1], pts[2], pts[3], pts[0]):
             parallel_pairs += 1
 
-        # ---- STRICT ORDER ----
+        #  STRICT ORDER 
         if equal_sides and right_angles:
             return "Square"
 
@@ -89,7 +89,7 @@ def classify_shape(contour):
         if equal_sides and opp_angles_eq:
             return "Rhombus"
 
-        # ---- KITE ----
+        #  KITE 
         if (
             abs(sides[0] - sides[1]) < 0.15 * avg and
             abs(sides[2] - sides[3]) < 0.15 * avg and
@@ -105,7 +105,7 @@ def classify_shape(contour):
 
         return "Quadrilateral"
 
-    # ---- POLYGONS ----
+    #  POLYGONS 
     names = {
         5: "Pentagon",
         6: "Hexagon",
@@ -115,7 +115,7 @@ def classify_shape(contour):
     }
     return names.get(v, "Polygon")
 
-# ================= MAIN =================
+# MAIN 
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     img = np.array(image)
@@ -157,12 +157,14 @@ if uploaded_file:
                 cv2.LINE_AA
             )
 
+        approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
         rows.append({
             "Shape": shape,
-            "Vertices": len(cv2.approxPolyDP(cnt, 0.02 * peri, True)),
+            "Vertices": 0 if shape == "Circle" else len(approx),
             "Area (px²)": round(area, 2),
             "Perimeter (px)": round(peri, 2)
         })
+
 
     df = pd.DataFrame(rows)
 
